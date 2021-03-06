@@ -14,11 +14,29 @@ struct {
 
 static struct proc *initproc;
 
+struct proc_node{
+  int head;
+  int tail;
+  int size;
+  struct proc proc[NPROC];
+}pqueue;
+
+
+
+
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+void enqueue(proc newproc){
+  pqueue.proc[pqueue.tail] = newproc;
+  if(pqueue.size != 0){ 
+    pqueue.tail = (pqueue.tail + 1) % NPROC;
+  }
+  size++;
+}
 
 void
 pinit(void)
