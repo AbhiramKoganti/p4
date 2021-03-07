@@ -25,7 +25,7 @@ static void wakeup1(void *chan);
 
 // TODO: TEST THIS
 struct proc*
-enqueue() {
+enqueue() {// need to lock while enqueing
   struct proc* procintable = &(pqueue.proc[pqueue.tail]);
   
   if(pqueue.proc[pqueue.tail].state != UNUSED) {
@@ -44,7 +44,7 @@ enqueue() {
 
 // TODO: TEST THIS
 struct proc
-dequeue() {
+dequeue() {// need to lock while dequeing
   if(pqueue.size > 1){
     pqueue.head = (pqueue.head + 1) % NPROC;
   }
@@ -58,9 +58,9 @@ dequeue() {
   return next_in_queue;
 }
 
-struct proc
+struct proc*
 peek() {
-  return pqueue.proc[pqueue.head];
+  return &pqueue.proc[pqueue.head];
 }
 
 void
@@ -364,6 +364,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  // struct proc top;
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -372,25 +373,58 @@ scheduler(void)
     sti();
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)                   // needs to be changed with the new 
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
+    // /acquire(&ptable.lock);
+    p=peek();
+    if(p->state==RUNNING && p-> time_remaining!=0){
+        p->time_remaining=p->time_remaining-1;
+    }
+    else{
+      if(p->state==RUNNING || p->state==SLEEPING){// it has run for its time slice and has not exitedo
+        p->time_remaining=p->time_slice;
+        p->state=RUNNABLE;
+      }
+      if(p->state==RUNNABLE || p->state==SLEEPING){
+        struct proc deleted=dequeue();
+        struct proc *test=enqueue();// enqueue does not take any arguments?? how to enqueue a process?
+        *test=deleted;
+      }
+      else{
+        dequeue(); // when the process terminates
+      }
+      
+      
+      struct proc  *temp=peek();
+      while(temp->state!=RUNNABLE){
+        struct proc deleted=dequeue();
+        struct proc *test=enqueue();// enqueue does not take any arguments?? how to enqueue a process?
+        *test=deleted;
+        temp=peek();
+      }
+      c->proc = temp;
+      switchuvm(temp);
+      temp->state = RUNNING;
+      swtch(&(c->scheduler), temp->context);
       switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
       c->proc = 0;
     }
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE)                   // needs to be changed with the new 
+    //     continue;
+
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
+
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
+
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
     release(&ptable.lock);
 
   }
