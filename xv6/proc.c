@@ -24,36 +24,43 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 // TODO: TEST THIS
-int
-enqueue(proc newproc) {
-  if(pqueue.proc[pqueue.tail].procstate != UNUSED) {
-    return -1;
+struct proc*
+enqueue() {
+  struct proc* procintable = &(pqueue.proc[pqueue.tail]);
+  
+  if(pqueue.proc[pqueue.tail].state != UNUSED) {
+    return procintable;
   }
 
-  pqueue.proc[pqueue.tail] = newproc;
+//pqueue.proc[pqueue.tail] = newproc;
+
   if(pqueue.size != 0){ 
     pqueue.tail = (pqueue.tail + 1) % NPROC;
   }
-  size++;
-  return 0;
+
+  pqueue.size++;
+  return procintable;
 }
 
 // TODO: TEST THIS
 struct proc
 dequeue() {
-  if(size > 1){
+  if(pqueue.size > 1){
     pqueue.head = (pqueue.head + 1) % NPROC;
   }
-  pqueue.head += 1;
-  size--;
-  struct proc next_in_queue = pqueue.proc[pqueue.head--];
-  pqueue.proc[pqueue.head--].procstate = UNUSED;
+  if(pqueue.size == 0){
+    return pqueue.proc[(pqueue.head - 1) % NPROC];
+  }
+
+  pqueue.size--;
+  struct proc next_in_queue = pqueue.proc[(pqueue.head - 1) % NPROC]; // mod arithmetic may be sus
+  pqueue.proc[(pqueue.head - 1) % NPROC ].state = UNUSED;
   return next_in_queue;
 }
 
 struct proc
 peek() {
-  return pqueue.proc[pequeue.head];
+  return pqueue.proc[pqueue.head];
 }
 
 void
@@ -110,42 +117,43 @@ myproc(void) {
 static struct proc*
 allocproc(void)
 {
-  struct proc p;
+  struct proc* p;
   char *sp;
 
+  p = enqueue();
+  if(p->state != UNUSED){
+    return 0;
+  }
   acquire(&ptable.lock);// TODO: add a lock to queue
 
-  p.state = EMBRYO;
-  p.pid = nextpid++;
+  p->state = EMBRYO;
+  p->pid = nextpid++;
 
   release(&ptable.lock); // TODO:  pqeue lock
 
   // Allocate kernel stack.
-  if((p.kstack = kalloc()) == 0){
-    p.state = UNUSED;
+  if((p->kstack = kalloc()) == 0){
+    p->state = UNUSED;
     return 0;
   }
-  sp = p.kstack + KSTACKSIZE;
+  sp = p->kstack + KSTACKSIZE;
 
   // Leave room for trap frame.
-  sp -= sizeof *p.tf;
-  p.tf = (struct trapframe*)sp;
+  sp -= sizeof *p->tf;
+  p->tf = (struct trapframe*)sp;
 
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
   *(uint*)sp = (uint)trapret;
 
-  sp -= sizeof *p.context;
-  p.context = (struct context*)sp;
-  memset(p.context, 0, sizeof *p.context);
-  p.context->eip = (uint)forkret;
+  sp -= sizeof *p->context;
+  p->context = (struct context*)sp;
+  memset(p->context, 0, sizeof *p->context);
+  p->context->eip = (uint)forkret;
   
-  if(enqueue(p) == -1) {
-    return 0;
-  }
 
-  return &p;
+  return p;
 }
 
 //PAGEBREAK: 32
