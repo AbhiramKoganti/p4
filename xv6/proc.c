@@ -24,13 +24,18 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 // TODO: TEST THIS
-void
+int
 enqueue(proc newproc) {
+  if(pqueue.proc[pqueue.tail].procstate != UNUSED) {
+    return -1;
+  }
+
   pqueue.proc[pqueue.tail] = newproc;
   if(pqueue.size != 0){ 
     pqueue.tail = (pqueue.tail + 1) % NPROC;
   }
   size++;
+  return 0;
 }
 
 // TODO: TEST THIS
@@ -101,50 +106,46 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-// TODO: enqueue a process, set valid bit of proc to 1
+// TODO: add lock to pqueue
 static struct proc*
 allocproc(void)
 {
-  struct proc *p;
+  struct proc p;
   char *sp;
 
-  acquire(&ptable.lock);
+  acquire(&ptable.lock);// TODO: add a lock to queue
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
+  p.state = EMBRYO;
+  p.pid = nextpid++;
 
-  release(&ptable.lock);
-  return 0;
-
-found:
-  p->state = EMBRYO;
-  p->pid = nextpid++;
-
-  release(&ptable.lock);
+  release(&ptable.lock); // TODO:  pqeue lock
 
   // Allocate kernel stack.
-  if((p->kstack = kalloc()) == 0){
-    p->state = UNUSED;
+  if((p.kstack = kalloc()) == 0){
+    p.state = UNUSED;
     return 0;
   }
-  sp = p->kstack + KSTACKSIZE;
+  sp = p.kstack + KSTACKSIZE;
 
   // Leave room for trap frame.
-  sp -= sizeof *p->tf;
-  p->tf = (struct trapframe*)sp;
+  sp -= sizeof *p.tf;
+  p.tf = (struct trapframe*)sp;
 
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
   *(uint*)sp = (uint)trapret;
 
-  sp -= sizeof *p->context;
-  p->context = (struct context*)sp;
-  memset(p->context, 0, sizeof *p->context);
-  p->context->eip = (uint)forkret;
+  sp -= sizeof *p.context;
+  p.context = (struct context*)sp;
+  memset(p.context, 0, sizeof *p.context);
+  p.context->eip = (uint)forkret;
+  
+  if(enqueue(p) == -1) {
+    return 0;
+  }
 
-  return p;
+  return &p;
 }
 
 //PAGEBREAK: 32
