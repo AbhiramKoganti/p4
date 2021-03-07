@@ -14,8 +14,8 @@ struct {
 
 static struct proc *initproc;
 
-// TODO: set valid bits in proc array to zero
-struct proc_queue pqueue;
+// Initialize all processes to valid bit zero
+struct proc_queue pqueue = {0};
 
 
 int nextpid = 1;
@@ -102,7 +102,7 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
-// TODO: enqueue a process, set valid bit of proc to 0
+// TODO: enqueue a process, set valid bit of proc to 1
 static struct proc*
 allocproc(void)
 {
