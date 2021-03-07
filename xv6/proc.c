@@ -14,8 +14,7 @@ struct {
 
 static struct proc *initproc;
 
-// Initialize all processes to valid bit zero
-struct proc_queue pqueue = {0};
+struct proc_queue pqueue;
 
 
 int nextpid = 1;
@@ -43,7 +42,7 @@ dequeue() {
   pqueue.head += 1;
   size--;
   struct proc next_in_queue = pqueue.proc[pqueue.head--];
-  pqueue.proc[pqueue.head--].valid == 0;
+  pqueue.proc[pqueue.head--].procstate = UNUSED;
   return next_in_queue;
 }
 
