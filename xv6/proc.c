@@ -14,14 +14,8 @@ struct {
 
 static struct proc *initproc;
 
-struct proc_node{
-  int head;
-  int tail;
-  int size;
-  struct proc proc[NPROC];
-}pqueue;
-
-
+// TODO: set valid bits in proc array to zero
+struct proc_queue pqueue;
 
 
 int nextpid = 1;
@@ -30,12 +24,32 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
-void enqueue(proc newproc){
+// TODO: TEST THIS
+void
+enqueue(proc newproc) {
   pqueue.proc[pqueue.tail] = newproc;
   if(pqueue.size != 0){ 
     pqueue.tail = (pqueue.tail + 1) % NPROC;
   }
   size++;
+}
+
+// TODO: TEST THIS
+struct proc
+dequeue() {
+  if(size > 1){
+    pqueue.head = (pqueue.head + 1) % NPROC;
+  }
+  pqueue.head += 1;
+  size--;
+  struct proc next_in_queue = pqueue.proc[pqueue.head--];
+  pqueue.proc[pqueue.head--].valid == 0;
+  return next_in_queue;
+}
+
+struct proc
+peek() {
+  return pqueue.proc[pequeue.head];
 }
 
 void
@@ -88,6 +102,7 @@ myproc(void) {
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
 // Otherwise return 0.
+// TODO: enqueue a process, set valid bit of proc to 0
 static struct proc*
 allocproc(void)
 {
