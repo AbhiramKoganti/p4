@@ -7,6 +7,15 @@
 #include "proc.h"
 #include "spinlock.h"
 
+
+struct proc_queue{
+  int head;
+  int tail;   
+  int size;
+  struct spinlock lock;
+  struct proc proc[NPROC];
+};
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -33,18 +42,20 @@ enqueue() {// need to lock while enqueing
   }
 
 //pqueue.proc[pqueue.tail] = newproc;
-
+   acquire(&pqueue.lock);
   if(pqueue.size != 0){ 
     pqueue.tail = (pqueue.tail + 1) % NPROC;
   }
 
   pqueue.size++;
+  release(&pqueue.lock);
   return procintable;
 }
 
 // TODO: TEST THIS
 struct proc
 dequeue() {// need to lock while dequeing
+  acquire(&pqueue.lock);
   if(pqueue.size > 1){
     pqueue.head = (pqueue.head + 1) % NPROC;
   }
@@ -55,6 +66,7 @@ dequeue() {// need to lock while dequeing
   pqueue.size--;
   struct proc next_in_queue = pqueue.proc[(pqueue.head - 1) % NPROC]; // mod arithmetic may be sus
   pqueue.proc[(pqueue.head - 1) % NPROC ].state = UNUSED;
+  release(&pqueue.lock);
   return next_in_queue;
 }
 
@@ -124,12 +136,12 @@ allocproc(void)
   if(p->state != UNUSED){
     return 0;
   }
-  acquire(&ptable.lock);// TODO: add a lock to queue
+  acquire(&pqueue.lock);// TODO: add a lock to queue
 
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  release(&ptable.lock); // TODO:  pqeue lock
+  release(&pqueue.lock); // TODO:  pqeue lock
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){

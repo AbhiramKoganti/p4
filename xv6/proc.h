@@ -58,12 +58,7 @@ struct proc {
 
 // Struct to hold the process queue
 // Implemented with an array of fixed length
-struct proc_queue{
-  int head;
-  int tail;   
-  int size;
-  struct proc proc[NPROC];
-};
+
 
 
 // Process memory is laid out contiguously, low addresses first:
