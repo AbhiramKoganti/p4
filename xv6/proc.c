@@ -42,20 +42,20 @@ enqueue() {// need to lock while enqueing
   }
 
 //pqueue.proc[pqueue.tail] = newproc;
-   acquire(&pqueue.lock);
+  //  acquire(&ptable.lock);
   if(pqueue.size != 0){ 
     pqueue.tail = (pqueue.tail + 1) % NPROC;
   }
 
   pqueue.size++;
-  release(&pqueue.lock);
+  // release(&ptable.lock);
   return procintable;
 }
 
 // TODO: TEST THIS
 struct proc
 dequeue() {// need to lock while dequeing
-  acquire(&pqueue.lock);
+  // acquire(&ptable.lock);
   if(pqueue.size > 1){
     pqueue.head = (pqueue.head + 1) % NPROC;
   }
@@ -66,7 +66,7 @@ dequeue() {// need to lock while dequeing
   pqueue.size--;
   struct proc next_in_queue = pqueue.proc[(pqueue.head - 1) % NPROC]; // mod arithmetic may be sus
   pqueue.proc[(pqueue.head - 1) % NPROC ].state = UNUSED;
-  release(&pqueue.lock);
+  // release(&ptable.lock);
   return next_in_queue;
 }
 
@@ -136,18 +136,20 @@ allocproc(void)
   if(p->state != UNUSED){
     return 0;
   }
-  acquire(&pqueue.lock);// TODO: add a lock to queue
+  acquire(&ptable.lock);// TODO: add a lock to queue
 
   p->state = EMBRYO;
   p->pid = nextpid++;
-
-  release(&pqueue.lock); // TODO:  pqeue lock
+  // if(holding(&ptable.lock))
+    release(&ptable.lock); // TODO:  pqeue lock
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
     return 0;
   }
+  p->time_slice=1;
+  p->time_remaining=1;
   sp = p->kstack + KSTACKSIZE;
 
   // Leave room for trap frame.
@@ -200,9 +202,9 @@ userinit(void)
   // writes to be visible, and the lock is also needed
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
-
+  // printf("here");
   p->state = RUNNABLE;
-
+  // if(holding(oqueue))
   release(&ptable.lock);
 }
 
@@ -268,8 +270,8 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
-
-  release(&ptable.lock);
+  if(holding(&ptable.lock))
+    release(&ptable.lock);
 
   return pid;
 }
@@ -306,7 +308,7 @@ exit(void)
   wakeup1(curproc->parent);
 
   // Pass abandoned children to init.
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(p = pqueue.proc; p < &pqueue.proc[NPROC]; p++){
     if(p->parent == curproc){
       p->parent = initproc;
       if(p->state == ZOMBIE)
@@ -348,14 +350,16 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
-        release(&ptable.lock);
+        if(holding(&ptable.lock))
+          release(&ptable.lock);
         return pid;
       }
     }
 
     // No point waiting if we don't have any children.
     if(!havekids || curproc->killed){
-      release(&ptable.lock);
+      if(holding(&ptable.lock))
+        release(&ptable.lock);
       return -1;
     }
 
@@ -378,6 +382,7 @@ scheduler(void)
   struct proc *p;
   // struct proc top;
   struct cpu *c = mycpu();
+  
   c->proc = 0;
   
   for(;;){
@@ -391,33 +396,40 @@ scheduler(void)
         p->time_remaining=p->time_remaining-1;
     }
     else{
-      if(p->state==RUNNING || p->state==SLEEPING){// it has run for its time slice and has not exitedo
-        p->time_remaining=p->time_slice;
-        p->state=RUNNABLE;
-      }
-      if(p->state==RUNNABLE || p->state==SLEEPING){
-        struct proc deleted=dequeue();
-        struct proc *test=enqueue();// enqueue does not take any arguments?? how to enqueue a process?
-        *test=deleted;
-      }
-      else{
-        dequeue(); // when the process terminates
-      }
+      // if(p->state==RUNNING)
+      //   p->state=RUNNABLE;
+
+      // if(p->state==RUNNABLE || p->state==SLEEPING){
+      //    p->time_remaining=p->time_slice;
+      //   struct proc deleted=dequeue();
+      //   struct proc *test=enqueue();// enqueue does not take any arguments?? how to enqueue a process?
+      //   *test=deleted;
+      // }
+      // else{
+      //   dequeue(); // when the process terminates
+      // }
       
-      
+    //  panic("made it here");
       struct proc  *temp=peek();
+      if(temp->state==SLEEPING){
+       panic("made it here");
+      }
       while(temp->state!=RUNNABLE){
+        // panic(temp->state);
+        panic("here");
         struct proc deleted=dequeue();
         struct proc *test=enqueue();// enqueue does not take any arguments?? how to enqueue a process?
         *test=deleted;
         temp=peek();
       }
+     
       c->proc = temp;
       switchuvm(temp);
       temp->state = RUNNING;
       swtch(&(c->scheduler), temp->context);
       switchkvm();
       c->proc = 0;
+      // panic("made it here"); 
     }
     // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     //   if(p->state != RUNNABLE)                   // needs to be changed with the new 
@@ -437,7 +449,9 @@ scheduler(void)
     //   // It should have changed its p->state before coming back.
     //   c->proc = 0;
     // }
-    release(&ptable.lock);
+      if(holding(&ptable.lock)){
+        release(&ptable.lock);
+        }
 
   }
 }
@@ -475,7 +489,8 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
-  release(&ptable.lock);
+  if(holding(&ptable.lock))
+    release(&ptable.lock);
 }
 
 // A fork child's very first scheduling by scheduler()
@@ -485,7 +500,8 @@ forkret(void)
 {
   static int first = 1;
   // Still holding ptable.lock from scheduler.
-  release(&ptable.lock);
+  if(holding(&ptable.lock))
+    release(&ptable.lock);
 
   if (first) {
     // Some initialization functions must be run in the context
@@ -533,6 +549,7 @@ sleep(void *chan, struct spinlock *lk)
 
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
+  
     release(&ptable.lock);
     acquire(lk);
   }
@@ -546,7 +563,7 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  for(p = pqueue.proc; p < &pqueue.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
 }
@@ -569,7 +586,7 @@ kill(int pid)
   struct proc *p;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  for(p = pqueue.proc; p < &pqueue.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
