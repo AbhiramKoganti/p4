@@ -13,6 +13,7 @@ struct pTable{
   int size;
   struct spinlock lock;
   struct proc proc[NPROC];
+  int order[NPROC];
 } ;
 
 struct proc_queue{
@@ -30,29 +31,23 @@ struct pTable ptable;
 
 struct proc*
 enqueue() {// need to lock while enqueing
- 
-  struct proc* procintable = &(ptable.proc[ptable.tail]);
-
-  if(ptable.proc[ptable.tail].state != UNUSED) {
-    if(ptable.proc[ptable.tail].state ==SLEEPING){
-      // ptable.proc[ptable.tail].state=RUNNABLE;
-        if(ptable.tail==0 ){
-          panic("wjhy");
-        }
-      
-      panic("process is not supposed to be sleeping");
-    }
-    panic("hereslfj");
-    // ptable.size++;
-    // ptable.tail = (ptable.tail + 1) % NPROC;
-    return procintable;
+  int i = 0;
+  for (i =0; i < NPROC; i++) {
+    if(ptable.proc[i].state == UNUSED)
+      break;
   }
+  if(i == NPROC){
+    panic("No space in ptable");	  
+  }
+  struct proc* procintable = &(ptable.proc[i]);
+
   // if(ptable.head==ptable.tail && ptable.si)
 
   // if(ptable.size != 0){ 
   //   ptable.tail = (ptable.tail + 1) % NPROC;
   // }
-   ptable.tail = (ptable.tail + 1) % NPROC;
+  ptable.order[ptable.tail] = i;
+  ptable.tail = (ptable.tail + 1) % NPROC;
   ptable.size++;
   return procintable;
 }
@@ -66,10 +61,9 @@ dequeue() {
     if(ptable.size>=NPROC){
     panic("why");
   }
-  struct proc next_in_queue = ptable.proc[(ptable.head)];
+  struct proc next_in_queue = ptable.proc[ptable.order[ptable.head]];
   if(ptable.size <=0){
     panic("here in not possible");
-    return ptable.proc[(ptable.head - 1) % NPROC];
   }
   else{
         // if((ptable.head + 1) % NPROC==0){
@@ -80,9 +74,7 @@ dequeue() {
     //   panic("makes sense");
     // }
     
-    ptable.proc[(ptable.head) ].state = UNUSED;
-    ptable.proc[(ptable.head)].cwd = 0;
-    ptable.proc[(ptable.head)].pgdir = 0;
+    ptable.proc[ptable.order[(ptable.head)] ].state = UNUSED;
 
     ptable.head = (ptable.head + 1) % NPROC;
     // if(ptable.head==0){
@@ -96,13 +88,20 @@ dequeue() {
     return next_in_queue;
   }
   
-
-
 }
 
+int enqueue_dequeue() {
+  if(ptable.size == 0){
+    return -1;
+  }
+  ptable.order[ptable.tail] = ptable.order[ptable.head];
+  ptable.tail = (ptable.tail + 1) % NPROC;
+  ptable.head = (ptable.head + 1) % NPROC;
+  return 0;
+}
 struct proc*
 peek() {
-  return &ptable.proc[ptable.head];
+  return &ptable.proc[ptable.order[ptable.head]];
 }
 
 static struct proc *initproc;
@@ -445,7 +444,7 @@ scheduler(void)
     	p = peek();
 	
 	if (p->state!=RUNNABLE) {
-      	  *enqueue() = dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
+      	  enqueue_dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
     	}  
       
       // char size[1];
