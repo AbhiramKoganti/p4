@@ -7,10 +7,13 @@
 #include "proc.h"
 #include "spinlock.h"
 
-struct {
+struct pTable{
+  int head;
+  int tail;   
+  int size;
   struct spinlock lock;
   struct proc proc[NPROC];
-} ptable;
+} ;
 
 struct proc_queue{
   int head;
@@ -20,45 +23,82 @@ struct proc_queue{
   struct proc proc[NPROC];
 };
 
-struct proc_queue pqueue;
+struct pTable ptable;
+// struct proc_queue pqueue;
 
 
 
 struct proc*
 enqueue() {// need to lock while enqueing
-  struct proc* procintable = &(pqueue.proc[pqueue.tail]);
-  
-  if(pqueue.proc[pqueue.tail].state != UNUSED) {
+ 
+  struct proc* procintable = &(ptable.proc[ptable.tail]);
+
+  if(ptable.proc[ptable.tail].state != UNUSED) {
+    if(ptable.proc[ptable.tail].state ==SLEEPING){
+      // ptable.proc[ptable.tail].state=RUNNABLE;
+        if(ptable.tail==0 ){
+          panic("wjhy");
+        }
+      
+      panic("process is not supposed to be sleeping");
+    }
+    panic("hereslfj");
+    // ptable.size++;
+    // ptable.tail = (ptable.tail + 1) % NPROC;
     return procintable;
   }
+  // if(ptable.head==ptable.tail && ptable.si)
 
-  if(pqueue.size != 0){ 
-    pqueue.tail = (pqueue.tail + 1) % NPROC;
-  }
-
-  pqueue.size++;
+  // if(ptable.size != 0){ 
+  //   ptable.tail = (ptable.tail + 1) % NPROC;
+  // }
+   ptable.tail = (ptable.tail + 1) % NPROC;
+  ptable.size++;
   return procintable;
 }
 
 // TODO: TEST THIS
 struct proc
 dequeue() {
-  if(pqueue.size > 1){
-    pqueue.head = (pqueue.head + 1) % NPROC;
+  // if(ptable.size > 1){
+  //   ptable.head = (ptable.head + 1) % NPROC;
+  // }
+    if(ptable.size>=NPROC){
+    panic("why");
   }
-  if(pqueue.size == 0){
-    return pqueue.proc[(pqueue.head - 1) % NPROC];
+  struct proc next_in_queue = ptable.proc[(ptable.head)];
+  if(ptable.size <=0){
+    panic("here in not possible");
+    return ptable.proc[(ptable.head - 1) % NPROC];
   }
+  else{
+        // if((ptable.head + 1) % NPROC==0){
+        //   if(ptable.head==0)
+        //   panic("efgefg");
+        // }
+    // if(ptable.head==NPROC-1){
+    //   panic("makes sense");
+    // }
+    ptable.proc[(ptable.head) ].state = UNUSED;
+    ptable.head = (ptable.head + 1) % NPROC;
+    // if(ptable.head==0){
+    //   // if(ptable.size-10>=NPROC)
+    //   panic("how os this possible");
+    // }
+    ptable.size--;
+     // mod arithmetic may be sus
+    // ptable.proc[(ptable.head - 1 + NPROC) % NPROC ].state = UNUSED;
 
-  pqueue.size--;
-  struct proc next_in_queue = pqueue.proc[(pqueue.head - 1) % NPROC]; // mod arithmetic may be sus
-  pqueue.proc[(pqueue.head - 1) % NPROC ].state = UNUSED;
-  return next_in_queue;
+    return next_in_queue;
+  }
+  
+
+
 }
 
 struct proc*
 peek() {
-  return &pqueue.proc[pqueue.head];
+  return &ptable.proc[ptable.head];
 }
 
 static struct proc *initproc;
@@ -123,14 +163,19 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
-  struct proc *test_p;
+  // struct proc *test_p;
   char *sp;
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
+  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  p=enqueue();
+  if(p->state == UNUSED){
+  // panic("here");
+    goto found;}
+  else
+  panic("here lol");
+    return 0;
 
   release(&ptable.lock);
   return 0;
@@ -141,8 +186,8 @@ found:
 
   release(&ptable.lock);
 
-  acquire(&pqueue.lock);
-  test_p=enqueue();
+  // acquire(&pqueue.lock);
+  // test_p=enqueue();
   
   
 
@@ -380,31 +425,79 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  int count=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE){
+    //     // dequeue();
+    //     continue;}
+    
+    p=peek();
+    count=0;
+    while(p->state!=RUNNABLE){
+      count++;
+      
+      // char size[1];
+      // size[0] = p->state + '0';
+      //   panic(size);
+
+
+      *enqueue() = dequeue();// enqueue does not take any arguments?? how to enqueue a process?
+      
+      // panic("what");
+      // test->state=deleted.state;
+      
+     // if(count>NPROC){
+      //}
+      p=peek();
+      // if(p->state==RUNNABLE){
+      //   // count++;
+      //   // if(count==1){
+      //   // panic("here in count");
+      //   // }
+      //   c->proc = p;
+      //   switchuvm(p);
+      //   p->state = RUNNING;
+      //   swtch(&(c->scheduler), p->context);
+      //   switchkvm();
+      //   c->proc = 0;
+      // }
+    // }
+    }
+      if(p->state==RUNNABLE){
+        // count++;
+        // if(count==1){
+        // panic("here in count");
+        // }
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+      }
+    //       c->proc = p;
+    //     switchuvm(p);
+    //     p->state = RUNNING;
+    //     swtch(&(c->scheduler), p->context);
+    //     switchkvm();
+    //     c->proc = 0;
+    // }
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
+      
+    // }
     release(&ptable.lock);
 
   }
