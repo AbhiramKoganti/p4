@@ -6,6 +6,8 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "pstat.h"
+
 
 int
 sys_fork(void)
@@ -42,7 +44,8 @@ sys_setslice(void)
 int pid;
   if(argint(0, &pid) < 0)
     return -1;
-  return setslice(pid);
+  return 0;
+  //return setslice(pid, 0);
 }
 
 int
@@ -51,7 +54,9 @@ sys_getslice(void)
 int pid;
   if(argint(0, &pid) < 0)
     return -1;
-  return getslice(pid);
+  
+  return 0;
+  //return getslice(pid);
 }
 
 int
@@ -60,18 +65,20 @@ sys_fork2(void)
 int slice;
   if(argint(0, &slice) < 0)
     return -1;
-  return fork2(slice);
+  return 0;
+  //return fork2(slice);
 }
 
 int
 sys_getpinfo(void)
 {
-void* stat;
-  if(argint(0, &stat) < 0)
+struct pstat* stat;
+  if(argptr(0, (void*)&stat, sizeof(struct pstat)) < 0)
     return -1;
-  return getpinfo(stat);
+  return 0;
+//TODO: Figure out why below isn't working
+  //return getpinfo(stat);
 }
-
 
 int
 sys_getpid(void)
