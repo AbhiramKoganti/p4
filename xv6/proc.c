@@ -79,7 +79,11 @@ dequeue() {
     // if(ptable.head==NPROC-1){
     //   panic("makes sense");
     // }
+    
     ptable.proc[(ptable.head) ].state = UNUSED;
+    ptable.proc[(ptable.head)].cwd = 0;
+    ptable.proc[(ptable.head)].pgdir = 0;
+
     ptable.head = (ptable.head + 1) % NPROC;
     // if(ptable.head==0){
     //   // if(ptable.size-10>=NPROC)
@@ -173,12 +177,12 @@ allocproc(void)
   if(p->state == UNUSED){
   // panic("here");
     goto found;}
-  else
-  panic("here lol");
+  else{
+    release(&ptable.lock);
     return 0;
-
-  release(&ptable.lock);
-  return 0;
+  }
+ // release(&ptable.lock);
+//  return 0;
 
 found:
   p->state = EMBRYO;
@@ -283,7 +287,6 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
-
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -425,7 +428,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  int count=0;
+  //int count=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -437,28 +440,31 @@ scheduler(void)
     //     // dequeue();
     //     continue;}
     
-    p=peek();
-    count=0;
-    while(p->state!=RUNNABLE){
-      count++;
+    //count=0;
+    for(int i = 0; i < ptable.size; i++){
+    	p = peek();
+	
+	if (p->state!=RUNNABLE) {
+      	  *enqueue() = dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
+    	}  
       
       // char size[1];
       // size[0] = p->state + '0';
       //   panic(size);
 
 
-      *enqueue() = dequeue();// enqueue does not take any arguments?? how to enqueue a process?
       
       // panic("what");
       // test->state=deleted.state;
       
      // if(count>NPROC){
       //}
-      p=peek();
+      // p=peek();
       // if(p->state==RUNNABLE){
       //   // count++;
       //   // if(count==1){
       //   // panic("here in count");
+      //
       //   // }
       //   c->proc = p;
       //   switchuvm(p);
@@ -468,19 +474,20 @@ scheduler(void)
       //   c->proc = 0;
       // }
     // }
-    }
-      if(p->state==RUNNABLE){
+    
+        else if(p->state==RUNNABLE){
         // count++;
         // if(count==1){
         // panic("here in count");
         // }
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        c->proc = 0;
-      }
+        	c->proc = p;
+          switchuvm(p);
+          p->state = RUNNING;
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+          c->proc = 0;
+	}
+    }
     //       c->proc = p;
     //     switchuvm(p);
     //     p->state = RUNNING;
