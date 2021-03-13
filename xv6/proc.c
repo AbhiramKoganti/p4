@@ -302,7 +302,7 @@ growproc(int n)
   return 0;
 }
 int fork(){
-  fork2(getslice(myproc()->pid));
+  return fork2(getslice(myproc()->pid));
 }
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
