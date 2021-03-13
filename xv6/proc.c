@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
 
 struct pTable{
   int head;
@@ -25,6 +26,7 @@ struct proc_queue{
 };
 
 struct pTable ptable;
+struct pstat pstat_table;
 // struct proc_queue pqueue;
 
 
@@ -40,6 +42,7 @@ enqueue() {// need to lock while enqueing
     panic("No space in ptable");	  
   }
   struct proc* procintable = &(ptable.proc[i]);
+  procintable->pstat_index=i;
 
   // if(ptable.head==ptable.tail && ptable.si)
 
@@ -136,6 +139,16 @@ int setslice(int pid,int slice){
   return -1;
 }
 
+int getpinfo(struct pstat *stat){
+  // if(&pstat_table){
+    if(stat==0){
+      return -1;
+    }
+    stat=&pstat_table;
+    return 0;
+  
+}
+
 int getslice(int pid){
   struct proc *p;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -229,6 +242,9 @@ found:
   p->tf = (struct trapframe*)sp;
   p->time_slice=1;
   p->time_remaining=p->time_slice;
+  pstat_table.inuse[p->pstat_index]=1;
+  pstat_table.pid[p->pstat_index]=p->pid;
+  pstat_table.timeslice[p->pstat_index]=p->time_slice;
 
   // Set up new context to start executing at forkret,
   // which returns to trapret.
@@ -328,6 +344,7 @@ fork2(int slice)
   np->sz = curproc->sz;
   np->parent = curproc;
   np->time_slice=slice;
+  pstat_table.timeslice[np->pstat_index]=np->time_slice;
   np->time_remaining=np->time_slice;
 
   *np->tf = *curproc->tf;
@@ -419,6 +436,7 @@ wait(void)
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
+        pstat_table.inuse[p->pstat_index]=0;
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->pgdir);
@@ -462,28 +480,29 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    //   if(p->state != RUNNABLE){
-    //     // dequeue();
-    //     continue;}
-    
-    //count=0;
+
     for(int i = 0; i < ptable.size; i++){
     	p = peek();
 	
 	if (p->state!=RUNNABLE || p->time_remaining==0) {
     if(p->state==RUNNABLE && p->time_remaining==0){
       p->time_remaining=p->time_slice;
+       // not sure about switch need to discuss
     }
+    
       	  enqueue_dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
     	}  
         
         else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
           switchuvm(p);
+          if((p->time_slice+p->compensation_ticks)==p->time_remaining){
+            pstat_table.switches[p->pstat_index]++;
+          }
           p->time_remaining=p->time_remaining-1;
+          pstat_table.schedticks[p->pstat_index]++;
+
           p->state = RUNNING;
           swtch(&(c->scheduler), p->context);
           switchkvm();

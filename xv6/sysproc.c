@@ -68,8 +68,8 @@ sys_fork2(void)
 int slice;
   if(argint(0, &slice) < 0)
     return -1;
-  return 0;
-  //return fork2(slice);
+  // return 0;
+  return fork2(slice);
 }
 
 int
@@ -78,9 +78,9 @@ sys_getpinfo(void)
 struct pstat* stat;
   if(argptr(0, (void*)&stat, sizeof(struct pstat)) < 0)
     return -1;
-  return 0;
+  // return 0;
 //TODO: Figure out why below isn't working
-  //return getpinfo(stat);
+  return getpinfo(stat);
 }
 
 int
