@@ -24,7 +24,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
-int setslice(int pid ); //int slice
+int setslice(int pid,int slice ); //int slice
 int getslice(int pid);
 int fork2(int slice);
 int getpinfo(struct pstat *);

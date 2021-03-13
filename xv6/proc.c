@@ -124,6 +124,29 @@ cpuid() {
   return mycpu()-cpus;
 }
 
+int setslice(int pid,int slice){
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid==pid){
+      p->time_slice=slice;
+      return 1;
+    }
+  // return 0;
+}
+  return -1;
+}
+
+int getslice(int pid){
+  struct proc *p;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid==pid){
+      // p->time_slice=slice;
+      return p->time_slice;
+    }
+
+}
+return -1;
+}
 // Must be called with interrupts disabled to avoid the caller being
 // rescheduled between reading lapicid and running through the loop.
 struct cpu*
@@ -204,6 +227,8 @@ found:
   // Leave room for trap frame.
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
+  p->time_slice=1;
+  p->time_remaining=p->time_slice;
 
   // Set up new context to start executing at forkret,
   // which returns to trapret.
@@ -276,12 +301,14 @@ growproc(int n)
   switchuvm(curproc);
   return 0;
 }
-
+int fork(){
+  fork2(getslice(myproc()->pid));
+}
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
 int
-fork(void)
+fork2(int slice)
 {
   int i, pid;
   struct proc *np;
@@ -300,6 +327,9 @@ fork(void)
   }
   np->sz = curproc->sz;
   np->parent = curproc;
+  np->time_slice=slice;
+  np->time_remaining=np->time_slice;
+
   *np->tf = *curproc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
@@ -443,44 +473,17 @@ scheduler(void)
     for(int i = 0; i < ptable.size; i++){
     	p = peek();
 	
-	if (p->state!=RUNNABLE) {
+	if (p->state!=RUNNABLE || p->time_remaining==0) {
+    if(p->state==RUNNABLE && p->time_remaining==0){
+      p->time_remaining=p->time_slice;
+    }
       	  enqueue_dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
     	}  
-      
-      // char size[1];
-      // size[0] = p->state + '0';
-      //   panic(size);
-
-
-      
-      // panic("what");
-      // test->state=deleted.state;
-      
-     // if(count>NPROC){
-      //}
-      // p=peek();
-      // if(p->state==RUNNABLE){
-      //   // count++;
-      //   // if(count==1){
-      //   // panic("here in count");
-      //
-      //   // }
-      //   c->proc = p;
-      //   switchuvm(p);
-      //   p->state = RUNNING;
-      //   swtch(&(c->scheduler), p->context);
-      //   switchkvm();
-      //   c->proc = 0;
-      // }
-    // }
-    
-        else if(p->state==RUNNABLE){
-        // count++;
-        // if(count==1){
-        // panic("here in count");
-        // }
+        
+        else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
           switchuvm(p);
+          p->time_remaining=p->time_remaining-1;
           p->state = RUNNING;
           swtch(&(c->scheduler), p->context);
           switchkvm();

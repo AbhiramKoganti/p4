@@ -42,10 +42,13 @@ int
 sys_setslice(void)
 {
 int pid;
+int slice;
   if(argint(0, &pid) < 0)
     return -1;
-  return 0;
-  //return setslice(pid, 0);
+  if(argint(1,&slice) < 0)
+    return -1;
+  // return 0;
+  return setslice(pid,slice);
 }
 
 int
@@ -56,7 +59,7 @@ int pid;
     return -1;
   
   return 0;
-  //return getslice(pid);
+  return getslice(pid);
 }
 
 int

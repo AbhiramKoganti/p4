@@ -50,6 +50,7 @@ struct proc {
   void *chan; // If non-zero, sleeping on chan
   int time_slice;
   int time_remaining;
+  int compensation_ticks;
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
