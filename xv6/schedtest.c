@@ -2,7 +2,8 @@
 #include "stat.h"
 #include "user.h"
 #include "fs.h"
-
+#include "param.h"
+#include "pstat.h"
 
 int main(int argc, char* argv[]){
   char loop[5];
@@ -20,16 +21,39 @@ int main(int argc, char* argv[]){
   int sliceB = atoi(argv[3]);
   int sleepParent = atoi(argv[5]);
 
-  fork2(sliceA);
-  if (getpid() == 0) {
+
+  int pidA = fork2(sliceA);
+  if (!pidA) {
      exec(first_loop[0], first_loop);
      exit();
   }
 
-  fork2(sliceB);
-  if (getpid() == 0) {
+  int pidB = fork2(sliceB);
+  if (!pidB) {
     exec(second_loop[0], second_loop);
   }
-
+  
   sleep(sleepParent);
+
+  struct pstat process_stats;
+  getpinfo(&process_stats);
+  
+  int aindex = -1;
+  int bindex = -1;
+
+  int nprocs = sizeof process_stats.pid / sizeof nprocs;
+
+  for (int i = 0; i < nprocs; i++) {
+    if (process_stats.pid[i] == pidA) {
+      aindex = i;
+    }
+    if (process_stats.pid[i] == pidB){
+      bindex = i;
+    }
+    if (aindex + 1 && bindex + 1)
+      break;
+  }
+   
+  printf(1, "%i %i\n", process_stats.compticks[pidA], process_stats.compticks[pidB]); 
+  
 }
