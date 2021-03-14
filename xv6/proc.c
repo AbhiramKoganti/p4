@@ -654,7 +654,8 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
     if(chan==&ticks){
-      acquire(&tickslock);
+      // if(holding())
+      // acquire(&tickslock);
       if((p->current_ticks+p->sleep_period)==ticks){
         p->state=RUNNABLE;
         p->current_ticks=0;
@@ -663,7 +664,7 @@ wakeup1(void *chan)
         p->time_assigned=p->time_slice+p->compensation_ticks;
         p->compensation_ticks=0;
       }
-      release(&tickslock);
+      // release(&tickslock);
     }
     else{
       p->state = RUNNABLE;
