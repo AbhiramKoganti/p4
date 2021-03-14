@@ -113,13 +113,17 @@ sys_sleep(void)
     return -1;
   acquire(&tickslock);
   ticks0 = ticks;
-  while(ticks - ticks0 < n){
-    if(myproc()->killed){
-      release(&tickslock);
-      return -1;
-    }
-    sleep(&ticks, &tickslock);
-  }
+  myproc()->sleep_period=n;
+  // panic("here");
+  myproc()->current_ticks=ticks0;
+  sleep(&ticks, &tickslock);
+  // while(ticks - ticks0 < n){
+  //   if(myproc()->killed){
+  //     release(&tickslock);
+  //     return -1;
+  //   }
+    
+  // }
   release(&tickslock);
   return 0;
 }

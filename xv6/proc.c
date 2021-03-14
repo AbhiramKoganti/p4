@@ -242,6 +242,7 @@ found:
   p->tf = (struct trapframe*)sp;
   p->time_slice=1;
   p->time_remaining=p->time_slice;
+  p->time_assigned=p->time_remaining;
   pstat_table.inuse[p->pstat_index]=1;
   pstat_table.pid[p->pstat_index]=p->pid;
   pstat_table.timeslice[p->pstat_index]=p->time_slice;
@@ -346,6 +347,7 @@ fork2(int slice)
   np->time_slice=slice;
   pstat_table.timeslice[np->pstat_index]=np->time_slice;
   np->time_remaining=np->time_slice;
+  np->time_assigned=np->time_remaining;
 
   *np->tf = *curproc->tf;
 
@@ -444,6 +446,10 @@ wait(void)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->compensation_ticks=0;
+        p->time_assigned=0;
+        p->current_ticks=0;
+        p->sleep_period=0;
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -488,6 +494,7 @@ scheduler(void)
 	if (p->state!=RUNNABLE || p->time_remaining==0) {
     if(p->state==RUNNABLE && p->time_remaining==0){
       p->time_remaining=p->time_slice;
+      p->time_assigned=p->time_remaining;
        // not sure about switch need to discuss
     }
     
@@ -497,12 +504,21 @@ scheduler(void)
         else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
           switchuvm(p);
-          if((p->time_slice+p->compensation_ticks)==p->time_remaining){
+          if(p->time_assigned==p->time_remaining){
             pstat_table.switches[p->pstat_index]++;
+          }
+          if(p->time_remaining>p->time_slice){
+            pstat_table.compticks[p->pstat_index]++;
           }
           p->time_remaining=p->time_remaining-1;
           pstat_table.schedticks[p->pstat_index]++;
-
+          struct proc *p1;
+           for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
+              if(p1->state == SLEEPING){
+                pstat_table.sleepticks[p1->pstat_index]++;
+                p1->compensation_ticks++;
+              }
+            }
           p->state = RUNNING;
           swtch(&(c->scheduler), p->context);
           switchkvm();
@@ -636,8 +652,24 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
+    if(chan==&ticks){
+      // if(holding())
+      // acquire(&tickslock);
+      if((p->current_ticks+p->sleep_period)==ticks){
+        p->state=RUNNABLE;
+        p->current_ticks=0;
+        p->sleep_period=0;
+        p->time_remaining=p->time_slice+p->compensation_ticks;
+        p->time_assigned=p->time_slice+p->compensation_ticks;
+        p->compensation_ticks=0;
+      }
+      // release(&tickslock);
+    }
+    else{
       p->state = RUNNABLE;
+    }
+    }
 }
 
 // Wake up all processes sleeping on chan.
