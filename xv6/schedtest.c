@@ -39,14 +39,16 @@ int main(int argc, char* argv[]){
   sleep(sleepParent);
 
   struct pstat process_stats;
-  int output=getpinfo(&process_stats);
-  printf(1,"%d",output);
+  getpinfo(&process_stats);
+//  printf(1,"%d",output);
   int aindex = -1;
   int bindex = -1;
 
-  int nprocs = sizeof process_stats.pid / sizeof nprocs;
+  //int nprocs = NPROC;// sizeof process_stats.pid / sizeof nprocs;
+  
+  for (int i = 0; i < NPROC; i++) {
+    printf(1, "%d\n", process_stats.compticks[i]);
 
-  for (int i = 0; i < nprocs; i++) {
     if (process_stats.pid[i] == pidA) {
       aindex = i;
     }
@@ -56,6 +58,8 @@ int main(int argc, char* argv[]){
     if (aindex + 1 && bindex + 1)
       break;
   }
-  printf(1, "%d %d\n", process_stats.compticks[aindex], process_stats.compticks[bindex]); 
+  printf(1, "%d %d\n", process_stats.compticks[aindex], process_stats.compticks[bindex]);
+ wait();
+ wait(); 
  exit();
 }
