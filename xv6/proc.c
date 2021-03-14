@@ -144,7 +144,7 @@ int getpinfo(struct pstat *stat){
     if(stat==0){
       return -1;
     }
-    stat=&pstat_table;
+    *stat=pstat_table;
     return 0;
   
 }

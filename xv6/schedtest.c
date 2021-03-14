@@ -56,7 +56,6 @@ int main(int argc, char* argv[]){
     if (aindex + 1 && bindex + 1)
       break;
   }
-   
-  printf(1, "%d %d\n", process_stats.compticks[pidA], process_stats.compticks[pidB]); 
+  printf(1, "%d %d\n", process_stats.compticks[aindex], process_stats.compticks[bindex]); 
  exit();
 }
