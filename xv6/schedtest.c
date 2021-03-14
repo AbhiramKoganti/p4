@@ -39,8 +39,8 @@ int main(int argc, char* argv[]){
   sleep(sleepParent);
 
   struct pstat process_stats;
-  getpinfo(&process_stats);
-  
+  int output=getpinfo(&process_stats);
+  printf(1,"%d",output);
   int aindex = -1;
   int bindex = -1;
 
