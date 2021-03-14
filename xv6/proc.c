@@ -507,7 +507,7 @@ scheduler(void)
           if(p->time_assigned==p->time_remaining){
             pstat_table.switches[p->pstat_index]++;
           }
-          if(p->time_remaining>p->time_slice){
+          if((p->time_assigned-p->time_slice)>p->time_remaining){
             pstat_table.compticks[p->pstat_index]++;
           }
           p->time_remaining=p->time_remaining-1;
