@@ -21,16 +21,19 @@ int main(int argc, char* argv[]){
   int sliceB = atoi(argv[3]);
   int sleepParent = atoi(argv[5]);
 
-
+  if(first_loop[0] || second_loop[0]);
   int pidA = fork2(sliceA);
   if (!pidA) {
      exec(first_loop[0], first_loop);
+     printf(1,"Didn't execute");
      exit();
   }
 
   int pidB = fork2(sliceB);
   if (!pidB) {
     exec(second_loop[0], second_loop);
+    printf(1, "Didn't execute");
+    exit();
   }
   
   sleep(sleepParent);
@@ -54,6 +57,6 @@ int main(int argc, char* argv[]){
       break;
   }
    
-  printf(1, "%i %i\n", process_stats.compticks[pidA], process_stats.compticks[pidB]); 
-  
+  printf(1, "%d %d\n", process_stats.compticks[pidA], process_stats.compticks[pidB]); 
+ exit();
 }
