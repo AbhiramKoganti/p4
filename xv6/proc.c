@@ -44,11 +44,7 @@ enqueue() {// need to lock while enqueing
   struct proc* procintable = &(ptable.proc[i]);
   procintable->pstat_index=i;
 
-  // if(ptable.head==ptable.tail && ptable.si)
-
-  // if(ptable.size != 0){ 
-  //   ptable.tail = (ptable.tail + 1) % NPROC;
-  // }
+ 
   ptable.order[ptable.tail] = i;
   ptable.tail = (ptable.tail + 1) % NPROC;
   ptable.size++;
@@ -78,7 +74,7 @@ dequeue() {
     // }
     
     ptable.proc[ptable.order[(ptable.head)] ].state = UNUSED;
-
+    pstat_table.inuse[ptable.order[(ptable.head)]]=0;
     ptable.head = (ptable.head + 1) % NPROC;
     // if(ptable.head==0){
     //   // if(ptable.size-10>=NPROC)
@@ -246,6 +242,10 @@ found:
   pstat_table.inuse[p->pstat_index]=1;
   pstat_table.pid[p->pstat_index]=p->pid;
   pstat_table.timeslice[p->pstat_index]=p->time_slice;
+  pstat_table.compticks[p->pstat_index]=0;
+  pstat_table.schedticks[p->pstat_index]=0;
+  pstat_table.switches[p->pstat_index]=0;
+  pstat_table.sleepticks[p->pstat_index]=0;
 
   // Set up new context to start executing at forkret,
   // which returns to trapret.
