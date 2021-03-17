@@ -43,7 +43,9 @@ enqueue() {// need to lock while enqueing
   }
   struct proc* procintable = &(ptable.proc[i]);
   procintable->pstat_index=i;
-
+    if(ptable.tail>=NPROC){
+    panic("here");
+  }
  
   ptable.order[ptable.tail] = i;
   ptable.tail = (ptable.tail + 1) % NPROC;
@@ -60,6 +62,9 @@ dequeue() {
     if(ptable.size>=NPROC){
     panic("why");
   }
+  if(ptable.order[ptable.head]>=NPROC){
+    panic("here");
+  }
   struct proc next_in_queue = ptable.proc[ptable.order[ptable.head]];
   if(ptable.size <=0){
     panic("here in not possible");
@@ -75,6 +80,7 @@ dequeue() {
     
     ptable.proc[ptable.order[(ptable.head)] ].state = UNUSED;
     pstat_table.inuse[ptable.order[(ptable.head)]]=0;
+    pstat_table.compticks[ptable.order[(ptable.head)]]=0;
     ptable.head = (ptable.head + 1) % NPROC;
     // if(ptable.head==0){
     //   // if(ptable.size-10>=NPROC)
@@ -319,7 +325,14 @@ growproc(int n)
   return 0;
 }
 int fork(){
-  return fork2(getslice(myproc()->pid));
+  int slice=getslice(myproc()->pid);
+  if(slice<0){
+    return -1;
+  }
+  else{
+    return fork2(slice);
+  }
+  
 }
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
@@ -447,6 +460,7 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->compensation_ticks=0;
+        pstat_table.compticks[p->pstat_index]=0;
         p->time_assigned=0;
         p->current_ticks=0;
         p->sleep_period=0;
@@ -481,7 +495,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  //int count=0;
+  int count=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -492,6 +506,9 @@ scheduler(void)
     	p = peek();
 	
 	if (p->state!=RUNNABLE || p->time_remaining==0) {
+    if(p->state==SLEEPING){
+      count++;
+    }
     if(p->state==RUNNABLE && p->time_remaining==0){
       p->time_remaining=p->time_slice;
       p->time_assigned=p->time_remaining;
@@ -512,36 +529,14 @@ scheduler(void)
           }
           p->time_remaining=p->time_remaining-1;
           pstat_table.schedticks[p->pstat_index]++;
-          struct proc *p1;
-           for(p1 = ptable.proc; p1 < &ptable.proc[NPROC]; p1++){
-              if(p1->state == SLEEPING){
-                pstat_table.sleepticks[p1->pstat_index]++;
-                p1->compensation_ticks++;
-              }
-            }
+
           p->state = RUNNING;
           swtch(&(c->scheduler), p->context);
           switchkvm();
           c->proc = 0;
 	}
     }
-    //       c->proc = p;
-    //     switchuvm(p);
-    //     p->state = RUNNING;
-    //     swtch(&(c->scheduler), p->context);
-    //     switchkvm();
-    //     c->proc = 0;
-    // }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      
-    // }
     release(&ptable.lock);
 
   }
@@ -651,25 +646,34 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == SLEEPING){
+      pstat_table.wakeup_compensation[p->pstat_index]++;
+    }
     if(p->state == SLEEPING && p->chan == chan){
     if(chan==&ticks){
       // if(holding())
       // acquire(&tickslock);
+      
+      p->compensation_ticks++;
       if((p->current_ticks+p->sleep_period)==ticks){
         p->state=RUNNABLE;
         p->current_ticks=0;
         p->sleep_period=0;
         p->time_remaining=p->time_slice+p->compensation_ticks;
         p->time_assigned=p->time_slice+p->compensation_ticks;
+        pstat_table.compensation[p->pstat_index]=p->compensation_ticks;
         p->compensation_ticks=0;
       }
+      
       // release(&tickslock);
     }
     else{
       p->state = RUNNABLE;
     }
     }
+}
+
 }
 
 // Wake up all processes sleeping on chan.

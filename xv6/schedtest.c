@@ -47,7 +47,7 @@ int main(int argc, char* argv[]){
   //int nprocs = NPROC;// sizeof process_stats.pid / sizeof nprocs;
   
   for (int i = 0; i < NPROC; i++) {
-    printf(1, "%d\n", process_stats.compticks[i]);
+   // printf(1, "%d\n", process_stats.compticks[i]);
 
     if (process_stats.pid[i] == pidA) {
       aindex = i;
@@ -59,6 +59,7 @@ int main(int argc, char* argv[]){
       break;
   }
   printf(1, "%d %d\n", process_stats.compticks[aindex], process_stats.compticks[bindex]);
+ // printf(1, "%d %d\n", process_stats.wakeup_compensation[aindex], process_stats.wakeup_compensation[bindex]);
  wait();
  wait(); 
  exit();

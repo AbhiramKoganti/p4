@@ -528,6 +528,7 @@ fourfiles(void)
     unlink(fname);
 
     pid = fork();
+    printf(1,"%d",pid);
     if(pid < 0){
       printf(1, "fork failed\n");
       exit();
@@ -552,6 +553,7 @@ fourfiles(void)
   }
 
   for(pi = 0; pi < 4; pi++){
+    printf(1,"here");
     wait();
   }
 
@@ -772,13 +774,14 @@ concreate(void)
     char name[14];
   } de;
 
-  printf(1, "concreate test\n");
+  printf(1, "concreate1 test\n");
   file[0] = 'C';
   file[2] = '\0';
   for(i = 0; i < 40; i++){
     file[1] = '0' + i;
     unlink(file);
     pid = fork();
+    // printf(1,"%d",pid);
     if(pid && (i % 3) == 1){
       link("C0", file);
     } else if(pid == 0 && (i % 5) == 1){
@@ -796,7 +799,7 @@ concreate(void)
     else
       wait();
   }
-
+  
   memset(fa, 0, sizeof(fa));
   fd = open(".", 0);
   n = 0;
@@ -823,10 +826,14 @@ concreate(void)
     printf(1, "concreate not enough files in directory listing\n");
     exit();
   }
-
+// int count=0;
   for(i = 0; i < 40; i++){
     file[1] = '0' + i;
+    // printf(1,"%d",i);00011122233344455566677788899910101011111112121213131314141415151516
     pid = fork();
+    // count++;         001122334455667788991010111112121313141415151616
+    printf(1,"%d",i);
+    
     if(pid < 0){
       printf(1, "fork failed\n");
       exit();
@@ -843,10 +850,15 @@ concreate(void)
       unlink(file);
       unlink(file);
     }
-    if(pid == 0)
-      exit();
-    else
+    if(pid == 0){
+    // printf(1,"here");
+      exit();}
+    else{
+      if(i==6){
+        printf(1,"here");
+      }
       wait();
+    }
   }
 
   printf(1, "concreate ok\n");
@@ -1748,6 +1760,7 @@ rand()
 int
 main(int argc, char *argv[])
 {
+  printf(1,"here");
   printf(1, "usertests starting\n");
 
   if(open("usertests.ran", 0) >= 0){
