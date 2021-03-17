@@ -6,5 +6,7 @@ struct pstat {
   int schedticks[NPROC];  // total number of timer ticks this process has been scheduled
   int sleepticks[NPROC]; // number of ticks during which this process was blocked
   int switches[NPROC];  // total num times this process has been scheduled
+  int compensation[NPROC];
+  int wakeup_compensation[NPROC];
 };
 
