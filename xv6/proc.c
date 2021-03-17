@@ -33,8 +33,8 @@ struct pstat pstat_table;
 
 struct proc*
 enqueue() {// need to lock while enqueing
-  int i = 0;
-  for (i =0; i < NPROC; i++) {
+  int i;
+  for (i = 0; i < NPROC; i++) {
     if(ptable.proc[i].state == UNUSED)
       break;
   }
@@ -43,9 +43,9 @@ enqueue() {// need to lock while enqueing
   }
   struct proc* procintable = &(ptable.proc[i]);
   procintable->pstat_index=i;
-    if(ptable.tail>=NPROC){
-    panic("here");
-  }
+  //  if(ptable.tail>=NPROC){
+  //    panic("here");
+  //  }
  
   ptable.order[ptable.tail] = i;
   ptable.tail = (ptable.tail + 1) % NPROC;
