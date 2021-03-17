@@ -508,10 +508,10 @@ scheduler(void)
     for(int i = 0; i < ptable.size; i++){
     	p = peek();
 	
-	if (p->state!=RUNNABLE || p->time_remaining==0|| p->killed==1) {
-    if(p->state==SLEEPING){
-      count++;
-    }
+	    if (p->state!=RUNNABLE || p->time_remaining==0|| p->killed==1) {
+        if(p->state==SLEEPING){
+          count++;
+       }
     if(p->state==RUNNABLE && p->time_remaining==0){
       p->time_remaining=p->time_slice;
       p->time_assigned=p->time_remaining;
@@ -521,6 +521,7 @@ scheduler(void)
         enqueue_dequeue();
         }// enqueue does not take any arguments?? how to enqueue a process?    
     	else{
+        p->state=UNUSED;
         dequeue();
       }
       }  
