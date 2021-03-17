@@ -324,6 +324,8 @@ growproc(int n)
   switchuvm(curproc);
   return 0;
 }
+
+
 int fork(){
   int slice=getslice(myproc()->pid);
   if(slice<0){
@@ -506,7 +508,7 @@ scheduler(void)
     for(int i = 0; i < ptable.size; i++){
     	p = peek();
 	
-	if (p->state!=RUNNABLE || p->time_remaining==0) {
+	if (p->state!=RUNNABLE || p->time_remaining==0|| p->killed==1) {
     if(p->state==SLEEPING){
       count++;
     }
@@ -515,9 +517,13 @@ scheduler(void)
       p->time_assigned=p->time_remaining;
        // not sure about switch need to discuss
     }
-    
-      	  enqueue_dequeue();// enqueue does not take any arguments?? how to enqueue a process?    
-    	}  
+      if(p->killed==0){
+        enqueue_dequeue();
+        }// enqueue does not take any arguments?? how to enqueue a process?    
+    	else{
+        dequeue();
+      }
+      }  
         
         else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
