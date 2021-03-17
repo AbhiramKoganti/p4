@@ -405,6 +405,7 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
+  dequeue();
 
   begin_op();
   iput(curproc->cwd);
