@@ -778,6 +778,7 @@ concreate(void)
   file[0] = 'C';
   file[2] = '\0';
   for(i = 0; i < 40; i++){
+    //  printf(1,"%d",i);
     file[1] = '0' + i;
     unlink(file);
     pid = fork();
@@ -832,7 +833,7 @@ concreate(void)
     // printf(1,"%d",i);00011122233344455566677788899910101011111112121213131314141415151516
     pid = fork();
     // count++;         001122334455667788991010111112121313141415151616
-    printf(1,"%d",i);
+   
     
     if(pid < 0){
       printf(1, "fork failed\n");
@@ -1760,13 +1761,13 @@ rand()
 int
 main(int argc, char *argv[])
 {
-  printf(1,"here");
+  // printf(1,"here");
   printf(1, "usertests starting\n");
 
-  if(open("usertests.ran", 0) >= 0){
-    printf(1, "already ran user tests -- rebuild fs.img\n");
-    exit();
-  }
+  // if(open("usertests.ran", 0) >= 0){
+  //   printf(1, "already ran user tests -- rebuild fs.img\n");
+  //   exit();
+  // }
   close(open("usertests.ran", O_CREATE));
 
   argptest();
