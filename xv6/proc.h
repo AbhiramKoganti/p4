@@ -59,6 +59,7 @@ struct proc {
   int sleep_period;
   int current_ticks;
   int time_assigned;
+  int to_remove;
                // Process name (debugging)
 };
 
