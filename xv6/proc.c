@@ -557,23 +557,30 @@ scheduler(void)
      
     	p = peek();
 	
-	    if (p->state!=RUNNABLE || p->time_remaining<=0) {
+	if (p->state!=RUNNABLE || p->time_remaining<=0) {
 
-        if(p->state==RUNNABLE && (p->time_remaining<=0)  ){
-          p->time_remaining=p->time_slice;
-          p->time_assigned=p->time_remaining;
+          if(p->state==RUNNABLE && (p->time_remaining<=0)  ){
+            if(time_slice!=p->time_slice){
+              p->time_remaining+=(p->time_slice-time_slice);
+              p->time_assigned+=(p->time_slice-time_slice);
+              time_slice = p->time_slice;
+              i--;
+              continue;
+            }
+            p->time_remaining=p->time_slice;
+            p->time_assigned=p->time_remaining;
       // pstat_table.switches[p->pstat_index]++;
        // not sure about switch need to discuss
-        }
+          }
 
     // if(p->time_remaining!=0){
 
     // time_slice=p->time
-         enqueue_dequeue();
-      } 
+          enqueue_dequeue();
+        }  
         
-      else if(p->state==RUNNABLE && p->time_remaining>0){
-        	c->proc = p;
+        else if(p->state==RUNNABLE && p->time_remaining>0){
+          c->proc = p;
           // time_slice=p->time_slice
           switchuvm(p);
           if(p->time_assigned==p->time_remaining){
@@ -582,10 +589,9 @@ scheduler(void)
           if(time_slice!=p->time_slice){
               p->time_remaining+=(p->time_slice-time_slice);
               p->time_assigned+=(p->time_slice-time_slice);
-              
-                i--;
-                continue;
-              
+              time_slice = p->time_slice;
+              i--;
+              continue; 
           }
           if(p->time_assigned==p->time_remaining){
             pstat_table.switches[p->pstat_index]++;
