@@ -107,7 +107,7 @@ dequeue() {
     pstat_table.inuse[ptable.order[(ptable.head)]]=0;
     pstat_table.compticks[ptable.order[(ptable.head)]]=0;
     ptable.head = (ptable.head + 1) % NPROC;
-    // if(ptable.head==0){
+    // if(ptable.head==0){/
     //   // if(ptable.size-10>=NPROC)
     //   panic("how os this possible");
     // }
@@ -160,9 +160,11 @@ int setslice(int pid,int slice){
   struct proc *p;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid==pid){
-      p->time_slice=slice;
-      pstat_table.timeslice[p->pstat_index]=slice;
+      p->time_remaining+=(slice - p->time_slice);
+      p->time_assigned+=(slice - p->time_slice);
 
+      p->time_slice=slice;   
+      pstat_table.timeslice[p->pstat_index]=slice;
       return 0;
     }
   // return 0;
@@ -546,7 +548,7 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   // int count=0;
-  int time_slice=0;
+ // int time_slice=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -560,13 +562,13 @@ scheduler(void)
 	if (p->state!=RUNNABLE || p->time_remaining<=0) {
 
           if(p->state==RUNNABLE && (p->time_remaining<=0)  ){
-            if(time_slice!=p->time_slice){
-              p->time_remaining+=(p->time_slice-time_slice);
-              p->time_assigned+=(p->time_slice-time_slice);
-              time_slice = p->time_slice;
-              i--;
-              continue;
-            }
+          //  if(time_slice!=p->time_slice){
+         //     p->time_remaining+=(p->time_slice-time_slice);
+         //     p->time_assigned+=(p->time_slice-time_slice);
+         //     time_slice = p->time_slice;
+         //     i--;
+         //     continue;
+         //   }
             p->time_remaining=p->time_slice;
             p->time_assigned=p->time_remaining;
       // pstat_table.switches[p->pstat_index]++;
@@ -583,16 +585,16 @@ scheduler(void)
           c->proc = p;
           // time_slice=p->time_slice
           switchuvm(p);
-          if(p->time_assigned==p->time_remaining){
-             time_slice=p->time_slice;
-          }
-          if(time_slice!=p->time_slice){
-              p->time_remaining+=(p->time_slice-time_slice);
-              p->time_assigned+=(p->time_slice-time_slice);
-              time_slice = p->time_slice;
-              i--;
-              continue; 
-          }
+          //if(p->time_assigned==p->time_remaining){
+             //time_slice=p->time_slice;
+          //}
+          //if(time_slice!=p->time_slice){
+          //    p->time_remaining+=(p->time_slice-time_slice);
+          //    p->time_assigned+=(p->time_slice-time_slice);
+          //    time_slice = p->time_slice;
+          //    i--;
+          //    continue; 
+          //}
           if(p->time_assigned==p->time_remaining){
             pstat_table.switches[p->pstat_index]++;
           }
