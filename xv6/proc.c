@@ -70,9 +70,7 @@ enqueue() {// need to lock while enqueing
   }
   struct proc* procintable = &(ptable.proc[i]);
   procintable->pstat_index=i;
-  //  if(ptable.tail>=NPROC){
-  //    panic("here");
-  //  }
+
  
   ptable.order[ptable.tail] = i;
   ptable.tail = (ptable.tail + 1) % NPROC;
@@ -163,6 +161,8 @@ int setslice(int pid,int slice){
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid==pid){
       p->time_slice=slice;
+      pstat_table.timeslice[p->pstat_index]=slice;
+
       return 0;
     }
   // return 0;
@@ -472,6 +472,7 @@ exit(void)
   // curproc->killed = 0;
   // curproc->state = UNUSED;
   curproc->state = ZOMBIE;
+  // pstat_table.switches[curproc->pstat_index]++;
   dequeue();
   sched();
   panic("zombie exit");
@@ -545,52 +546,64 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   // int count=0;
+  int time_slice=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
     acquire(&ptable.lock);
-
+   
     for(int i = 0; i < ptable.size; i++){
+     
     	p = peek();
 	
-	    if (p->state!=RUNNABLE || p->time_remaining==0) {
+	    if (p->state!=RUNNABLE || p->time_remaining<=0) {
 
-    if(p->state==RUNNABLE && (p->time_remaining==0)  ){
-      p->time_remaining=p->time_slice;
-      p->time_assigned=p->time_remaining;
-      pstat_table.switches[p->pstat_index]++;
+        if(p->state==RUNNABLE && (p->time_remaining<=0)  ){
+          p->time_remaining=p->time_slice;
+          p->time_assigned=p->time_remaining;
+      // pstat_table.switches[p->pstat_index]++;
        // not sure about switch need to discuss
-    }
-    // if(p->killed==0){
-    //   enqueue_dequeue();
-    //   }// enqueue does not take any arguments?? how to enqueue a process?    
-    // else if((p->killed=1)){
-    //     // if(p->state==RUNNABLE)
-    //       // panic("in a killed process");
-    //      enqueue_dequeue();
-    //   //  enqueue_dequeue();
-    // }  
-    enqueue_dequeue();
-    } 
+        }
+
+    // if(p->time_remaining!=0){
+
+    // time_slice=p->time
+         enqueue_dequeue();
+      } 
         
-     else if(p->state==RUNNABLE && p->time_remaining!=0){
+      else if(p->state==RUNNABLE && p->time_remaining>0){
         	c->proc = p;
+          // time_slice=p->time_slice
           switchuvm(p);
           if(p->time_assigned==p->time_remaining){
-            //pstat_table.switches[p->pstat_index]++;
+             time_slice=p->time_slice;
           }
+          if(time_slice!=p->time_slice){
+              p->time_remaining+=(p->time_slice-time_slice);
+              p->time_assigned+=(p->time_slice-time_slice);
+              
+                i--;
+                continue;
+              }
+          }
+          if(p->time_assigned==p->time_remaining){
+            pstat_table.switches[p->pstat_index]++;
+          }
+          
+
           if((p->time_assigned-p->time_slice) >= (p->time_remaining)){
             pstat_table.compticks[p->pstat_index]++;
           }
-          p->time_remaining=p->time_remaining-1;
+          
           pstat_table.schedticks[p->pstat_index]++;
 
           p->state = RUNNING;
           swtch(&(c->scheduler), p->context);
+          p->time_remaining=p->time_remaining-1;
           switchkvm();
           c->proc = 0;
-	}
+	    }
     }
 
     release(&ptable.lock);
@@ -661,7 +674,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+  // uint now_ticks;
   if(p == 0)
     panic("sleep");
 
@@ -678,9 +691,17 @@ sleep(void *chan, struct spinlock *lk)
     acquire(&ptable.lock);  //DOC: sleeplock1
     release(lk);
   }
+  // if (lk == &tickslock) { // already hold
+  //   now_ticks = ticks;
+  // } else {
+  //   acquire(&tickslock);
+  //   now_ticks = ticks;
+  //   release(&tickslock);
+  // }
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+  // p->tick_of_sleep=now_ticks;
   
   sched();
 
@@ -705,29 +726,41 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING){
       pstat_table.wakeup_compensation[p->pstat_index]++;
-      pstat_table.sleepticks[p->pstat_index]++;
+      
     }
     if(p->state == SLEEPING && p->chan == chan){
-    if(chan==&ticks){
+      if(chan==&ticks){
       // if(holding())
       // acquire(&tickslock);
-      
-      p->compensation_ticks++;
-      if((p->current_ticks+p->sleep_period)==ticks){
-        p->state=RUNNABLE;
-        p->current_ticks=0;
-        p->sleep_period=0;
-        p->time_remaining=p->time_slice+p->compensation_ticks;
-        p->time_assigned=p->time_slice+p->compensation_ticks;
-        pstat_table.compensation[p->pstat_index]=p->compensation_ticks;
-        p->compensation_ticks=0;
-      }
+        pstat_table.sleepticks[p->pstat_index]++;
+        p->compensation_ticks++;
+        if((p->current_ticks+p->sleep_period)==ticks){
+          p->state=RUNNABLE;
+          // now_ticks = ticks;
+          // if(p->sleep_period!=p->compensation_ticks){
+          //   panic("not possible for sleep_period");
+          // }
+          // if()
+          // p->compensation_ticks=c->sleep_period;
+          p->current_ticks=0;
+          p->sleep_period=0;
+          p->time_remaining=p->time_slice+p->compensation_ticks;
+          p->time_assigned=p->time_remaining;
+          pstat_table.compensation[p->pstat_index]=p->compensation_ticks;
+          p->compensation_ticks=0;
+        }
       
       // release(&tickslock);
-    }
-    else{
-      p->state = RUNNABLE;
-    }
+      } 
+      else{
+  
+          // acquire(&tickslock);
+          // now_ticks = ticks;
+          // release(&tickslock);
+          // pstat_table.sleepticks[p->pstat_index]=now_ticks-p->tick_of_sleep;
+            
+        p->state = RUNNABLE;
+      }
     }
 }
 
