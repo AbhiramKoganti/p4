@@ -31,17 +31,21 @@ struct pstat pstat_table;
 
 void remove(int index){
   int i;
-  for(i = 0; i < ptable.size; i++){
+  int made_it=0;
+  for(i = ptable.head; i !=ptable.tail; i=(i+1)%NPROC){
     if(ptable.order[i] == index){
+      panic("found in the order array");
+      made_it=1;
       break;
     }
   }
-  
+  if(made_it){
   for(int j = i; (j % NPROC) != (i - 1 + ptable.size)%NPROC; (j = (j+1)%NPROC)){
     ptable.order[j] = ptable.order[(j+1)%NPROC];
   }
   ptable.tail = (ptable.tail - 1 + NPROC) % NPROC;
   ptable.size--;
+  }
 
 }
 
@@ -258,7 +262,7 @@ found:
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
-    remove(p->pstat_index); // NEW
+    // remove(p->pstat_index); // NEW
     return 0;
   }
   sp = p->kstack + KSTACKSIZE;
@@ -379,7 +383,7 @@ fork2(int slice)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
-    remove(np->pstat_index);
+    // remove(np->pstat_index);
     return -1;
   }
   np->sz = curproc->sz;
@@ -464,6 +468,7 @@ exit(void)
   // curproc->killed = 0;
   // curproc->state = UNUSED;
   curproc->state = ZOMBIE;
+  dequeue();
   sched();
   panic("zombie exit");
 }
@@ -503,8 +508,8 @@ wait(void)
         p->current_ticks=0;
         p->sleep_period=0;
         p->state = UNUSED;
-        remove(p->pstat_index);
-        p->to_remove=1;
+        // remove(p->pstat_index);
+        // p->to_remove=1;
         release(&ptable.lock);
         return pid;
       }
@@ -535,7 +540,7 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  int count=0;
+  // int count=0;
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -546,10 +551,8 @@ scheduler(void)
     	p = peek();
 	
 	    if (p->state!=RUNNABLE || p->time_remaining==0|| p->killed==1) {
-        if(p->state==SLEEPING){
-          count++;
-       }
-    if(p->state==RUNNABLE && p->time_remaining==0){
+
+    if(p->state==RUNNABLE && (p->time_remaining==0)  ){
       p->time_remaining=p->time_slice;
       p->time_assigned=p->time_remaining;
        // not sure about switch need to discuss
@@ -557,28 +560,15 @@ scheduler(void)
       if(p->killed==0){
         enqueue_dequeue();
         }// enqueue does not take any arguments?? how to enqueue a process?    
-    	else if((p->killed=1) || (p->to_remove==1)){
-        // pstat_table.inuse[p->pstat_index]=0;
-        // kfree(p->kstack);
-        // p->kstack = 0;
-        // freevm(p->pgdir);
-        // p->pid = 0;
-        // p->parent = 0;
-        // p->name[0] = 0;
-        // p->killed = 0;
-        // p->compensation_ticks=0;
-        // pstat_table.compticks[p->pstat_index]=0;
-        // p->time_assigned=0;
-        // p->current_ticks=0;
-        // p->sleep_period=0;
-        // p->state = UNUSED;
-        // panic("here");
-        p->to_remove=0;
+    	else if((p->killed=1)){
+        // if(p->state==RUNNABLE)
+          // panic("in a killed process");
+        // dequeue();
         dequeue();
       }
-      }  
+    }  
         
-        else if(p->state==RUNNABLE && p->time_remaining!=0){
+     else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
           switchuvm(p);
           if(p->time_assigned==p->time_remaining){
