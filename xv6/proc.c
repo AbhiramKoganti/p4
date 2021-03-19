@@ -66,7 +66,7 @@ enqueue() {// need to lock while enqueing
       //panic("here it is");
     //}
     //panic("No space in ptable");	  
-    panic("Too big");
+    //panic("Too big");
   }
   struct proc* procintable = &(ptable.proc[i]);
   procintable->pstat_index=i;
@@ -105,7 +105,7 @@ dequeue() {
     //   panic("makes sense");
     // }
     
-    ptable.proc[ptable.order[(ptable.head)] ].state = UNUSED;
+    //ptable.proc[ptable.order[(ptable.head)] ].state = UNUSED;
     pstat_table.inuse[ptable.order[(ptable.head)]]=0;
     pstat_table.compticks[ptable.order[(ptable.head)]]=0;
     ptable.head = (ptable.head + 1) % NPROC;
@@ -557,16 +557,16 @@ scheduler(void)
       p->time_assigned=p->time_remaining;
        // not sure about switch need to discuss
     }
-      if(p->killed==0){
-        enqueue_dequeue();
-        }// enqueue does not take any arguments?? how to enqueue a process?    
-    	else if((p->killed=1)){
+    if(p->killed==0){
+      enqueue_dequeue();
+      }// enqueue does not take any arguments?? how to enqueue a process?    
+    else if((p->killed=1)){
         // if(p->state==RUNNABLE)
           // panic("in a killed process");
-        // dequeue();
-        dequeue();
-      }
+         dequeue();
+      //  enqueue_dequeue();
     }  
+    } 
         
      else if(p->state==RUNNABLE && p->time_remaining!=0){
         	c->proc = p;
