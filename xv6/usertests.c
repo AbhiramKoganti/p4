@@ -554,9 +554,9 @@ fourfiles(void)
 
   for(pi = 0; pi < 4; pi++){
    
-    int output=wait();
-    printf(1,"here");
-    printf(1,"%d",output);
+    wait();
+    // printf(1,"here");
+    // printf(1,"%d",output);
   }
   printf(1,"here");
   for(i = 0; i < 2; i++){
@@ -1590,9 +1590,12 @@ validatetest(void)
       validateint((int*)p);
       exit();
     }
+    printf(1,"before");
     sleep(0);
     sleep(0);
+    
     kill(pid);
+    printf(1,"after kill");
     wait();
 
     // try to crash the kernel by passing in a bad string pointer
