@@ -585,7 +585,7 @@ scheduler(void)
               
                 i--;
                 continue;
-              }
+              
           }
           if(p->time_assigned==p->time_remaining){
             pstat_table.switches[p->pstat_index]++;
