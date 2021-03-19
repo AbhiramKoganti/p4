@@ -157,11 +157,13 @@ cpuid() {
 }
 
 int setslice(int pid,int slice){
+  if(slice <= 0)
+    return -1;
   struct proc *p;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid==pid){
       p->time_slice=slice;
-      return 1;
+      return 0;
     }
   // return 0;
 }
@@ -370,6 +372,8 @@ int fork(){
 int
 fork2(int slice)
 {
+  if(slice < 0)
+    return -1;
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -555,6 +559,7 @@ scheduler(void)
     if(p->state==RUNNABLE && (p->time_remaining==0)  ){
       p->time_remaining=p->time_slice;
       p->time_assigned=p->time_remaining;
+      pstat_table.switches[p->pstat_index]++;
        // not sure about switch need to discuss
     }
     // if(p->killed==0){
@@ -573,7 +578,7 @@ scheduler(void)
         	c->proc = p;
           switchuvm(p);
           if(p->time_assigned==p->time_remaining){
-            pstat_table.switches[p->pstat_index]++;
+            //pstat_table.switches[p->pstat_index]++;
           }
           if((p->time_assigned-p->time_slice) >= (p->time_remaining)){
             pstat_table.compticks[p->pstat_index]++;
@@ -676,7 +681,7 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
-
+  
   sched();
 
   // Tidy up.
@@ -700,6 +705,7 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == SLEEPING){
       pstat_table.wakeup_compensation[p->pstat_index]++;
+      pstat_table.sleepticks[p->pstat_index]++;
     }
     if(p->state == SLEEPING && p->chan == chan){
     if(chan==&ticks){
