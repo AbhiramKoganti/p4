@@ -553,10 +553,12 @@ fourfiles(void)
   }
 
   for(pi = 0; pi < 4; pi++){
+   
+    int output=wait();
     printf(1,"here");
-    wait();
+    printf(1,"%d",output);
   }
-
+  printf(1,"here");
   for(i = 0; i < 2; i++){
     fname = names[i];
     fd = open(fname, 0);
@@ -578,7 +580,7 @@ fourfiles(void)
     unlink(fname);
   }
 
-  printf(1, "fourfiles ok\n");
+  printf(1, "fourfile ok\n");
 }
 
 // four processes create and delete different files in same directory
@@ -855,10 +857,11 @@ concreate(void)
     // printf(1,"here");
       exit();}
     else{
-      if(i==6){
-        printf(1,"here");
-      }
+      // if(i==6){
+        // printf(1,"here\n");
+      // }
       wait();
+      // printf(1,"%d\n",output);
     }
   }
 
@@ -1764,10 +1767,10 @@ main(int argc, char *argv[])
   // printf(1,"here");
   printf(1, "usertests starting\n");
 
-  // if(open("usertests.ran", 0) >= 0){
-  //   printf(1, "already ran user tests -- rebuild fs.img\n");
-  //   exit();
-  // }
+  if(open("usertests.ran", 0) >= 0){
+    printf(1, "already ran user tests -- rebuild fs.img\n");
+    exit();
+  }
   close(open("usertests.ran", O_CREATE));
 
   argptest();

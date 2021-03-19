@@ -550,22 +550,23 @@ scheduler(void)
     for(int i = 0; i < ptable.size; i++){
     	p = peek();
 	
-	    if (p->state!=RUNNABLE || p->time_remaining==0|| p->killed==1) {
+	    if (p->state!=RUNNABLE || p->time_remaining==0) {
 
     if(p->state==RUNNABLE && (p->time_remaining==0)  ){
       p->time_remaining=p->time_slice;
       p->time_assigned=p->time_remaining;
        // not sure about switch need to discuss
     }
-    if(p->killed==0){
-      enqueue_dequeue();
-      }// enqueue does not take any arguments?? how to enqueue a process?    
-    else if((p->killed=1)){
-        // if(p->state==RUNNABLE)
-          // panic("in a killed process");
-         dequeue();
-      //  enqueue_dequeue();
-    }  
+    // if(p->killed==0){
+    //   enqueue_dequeue();
+    //   }// enqueue does not take any arguments?? how to enqueue a process?    
+    // else if((p->killed=1)){
+    //     // if(p->state==RUNNABLE)
+    //       // panic("in a killed process");
+    //      enqueue_dequeue();
+    //   //  enqueue_dequeue();
+    // }  
+    enqueue_dequeue();
     } 
         
      else if(p->state==RUNNABLE && p->time_remaining!=0){
